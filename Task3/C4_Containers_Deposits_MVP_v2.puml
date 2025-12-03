@@ -1,0 +1,76 @@
+@startuml Containers
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(client_new, "Клиент (новый)")
+Person(client_exist, "Клиент (существующий)")
+Person(back_office_user, "Сотрудник бэк-офиса")
+
+' ===== Сайт банка =====
+Container_Boundary(site_boundary, "Сайт банка") {
+  Container(site_fe, "Frontend", "React", "Форма заявки (ФИО, телефон)")
+  Container(site_be, "Backend", "PHP", "Валидация, вызов DAS API")
+}
+
+' ===== Интернет-банк =====
+Container_Boundary(ibs_boundary, "Интернет-банк") {
+  Container(ibs_fe, "Frontend", "ASP.NET MVC", "Форма заявки + СМС-поле")
+  Container(ibs_be, "Backend", ".NET 4.5", "СМС-верификация + вызов DAS")
+}
+
+' ===== Микросервис заявок =====
+Container_Boundary(das_boundary, "Deposit Application Service (DAS)") {
+  Container(das_api, "API", "REST (.NET Core / Java)", "Приём заявок от сайта и ИБ")
+  Container(das_db, "База данных", "PostgreSQL / MS SQL", "Заявки: id, channel, payload, status")
+}
+
+' ===== BackOffice Portal =====
+Container_Boundary(bo_boundary, "BackOffice Portal") {
+  Container(bo_fe, "Web UI", "React", "Интерфейс для обработки заявок")
+  Container(bo_be, "Backend", "Spring Boot / .NET Core", "Интеграция с DAS и АБС")
+}
+
+' ===== АБС =====
+Container_Boundary(abs_boundary, "АБС") {
+  Container(abs_ui, "Delphi-клиент", "Delphi", "UI фронт-/бэк-офиса")
+  Container(abs_sms_adapter, "SMS Adapter", "Легковесный API", "HTTP → PL/SQL (СМС)")
+  Container(abs_deposit_adapter, "Deposit API", "SOAP / REST", "Открытие депозита")
+}
+
+System_Ext(sms_gateway, "СМС-шлюз")
+
+' === Потоки ===
+' Новый клиент
+Rel(client_new, site_fe, "открывает сайт")
+Rel(site_fe, site_be, "POST /apply")
+Rel(site_be, das_api, "POST /applications")
+
+' Существующий клиент
+Rel(client_exist, ibs_fe, "открывает ИБ")
+Rel(ibs_fe, ibs_be, "HTTP")
+Rel(ibs_be, das_api, "POST /applications")
+Rel(ibs_be, abs_sms_adapter, "POST /sms/send")
+Rel(abs_sms_adapter, sms_gateway, "отправка СМС")
+
+' Бэк-офис
+Rel(back_office_user, bo_fe, "работает в браузере (LAN)")
+Rel(bo_fe, bo_be, "HTTP")
+Rel(bo_be, das_db, "SELECT (read replica)", "или через DAS API")
+Rel(bo_be, abs_deposit_adapter, "POST /deposit/open")
+
+' Примечания
+note bottom of das_db
+  БД DAS — единая точка хранения
+  заявок от всех каналов.
+  BackOffice Portal читает
+  только через replica или API
+  (прямой доступ запрещён).
+end note
+
+note left of site_be
+  Сайт не делает СМС-верификацию —
+  заявка сразу в DAS.
+  Обработка — оператором кол-центра
+  или бэк-офисом.
+end note
+
+@enduml
