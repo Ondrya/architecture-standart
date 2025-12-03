@@ -61,9 +61,7 @@ Rel(bo_be, abs_deposit_adapter, "POST /deposit/open")
 note bottom of das_db
   БД DAS — единая точка хранения
   заявок от всех каналов.
-  BackOffice Portal читает
-  только через replica или API
-  (прямой доступ запрещён).
+  BackOffice Portal читает и обновляет напрямую или через API.
 end note
 
 note left of site_be
