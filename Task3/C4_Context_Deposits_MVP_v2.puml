@@ -1,0 +1,34 @@
+@startuml Контексты
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(client_new, "Клиент (новый)")
+Person(client_exist, "Клиент (существующий)")
+Person_Ext(call_center_agent, "Менеджер кол-центра")
+Person_Ext(back_office_user, "Сотрудник бэк-офиса")
+
+System_Boundary(micro_boundary, "Микросервисная зона") {
+  System(das, "Deposit Application Service", "Микросервис заявок")
+}
+
+System(site, "Сайт банка")
+System(ibs, "Интернет-банк")
+System(call_center, "Система кол-центра")
+System(back_office_portal, "BackOffice Portal", "Web UI для бэк-офиса")
+System(abs, "АБС")
+System_Ext(sms_gateway, "СМС-шлюз")
+
+Rel(client_new, site, "открывает")
+Rel(client_exist, ibs, "открывает")
+Rel(site, das, "отправляет заявку")
+Rel(ibs, das, "отправляет заявку")
+Rel(ibs, abs, "запрашивает СМС-код")
+Rel(abs, sms_gateway, "отправляет СМС")
+
+Rel(call_center_agent, call_center, "работает в")
+Rel(call_center, das, "может получать заявки (опционально)")
+
+Rel(back_office_user, back_office_portal, "работает в")
+Rel(back_office_portal, das, "читает заявки")
+Rel(back_office_portal, abs, "открывает депозит")
+
+@enduml
