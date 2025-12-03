@@ -1,0 +1,18 @@
+@startuml C4_Container
+!include <C4/C4_Container>
+
+Person(manager_internal, "Менеджер (внутр. КЦ)")
+Person(manager_partner, "Менеджер (партнёрский КЦ)")
+Person(deposit_manager, "Менеджер депозитов")
+
+System(stakes_service, "Сервис управления ставками", "Уже в MVP")
+System(sftp_gateway, "SFTP-шлюз", "DMZ, защищённая зона")
+System_Ext(partner_cc, "ИС партнёрского кол-центра", "Внешняя система")
+
+Rel(manager_internal, stakes_service, "читает ставки (API / UI)")
+Rel(deposit_manager, stakes_service, "инициирует выгрузку")
+Rel(stakes_service, sftp_gateway, "выгружает файл")
+Rel(sftp_gateway, partner_cc, "SFTP-загрузка")
+Rel(manager_partner, partner_cc, "читает ставки из ИС")
+
+@enduml

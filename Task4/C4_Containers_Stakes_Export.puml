@@ -1,0 +1,34 @@
+@startuml C4_Container
+!include <C4/C4_Container>
+
+Container_Boundary(stakes_boundary, "Сервис управления ставками") {
+  Container(stakes_api, "API", "REST", "Чтение/редактирование ставок")
+  Container(stakes_db, "База данных", "MS SQL / Oracle", "", "«DB»")
+  Container(file_exporter, "File Exporter", ".NET Core Worker", "Генерация, подпись, выгрузка")
+  Container(stakes_ui, "UI для менеджеров", "React / Razor", "Кнопка 'Выгрузить сейчас'")
+}
+
+Container(sftp_gateway, "SFTP-шлюз", "OpenSSH", "DMZ, только upload")
+System_Ext(partner_cc, "ИС партнёрского КЦ")
+
+Rel(stakes_api, stakes_db, "SELECT/UPDATE")
+Rel(stakes_ui, file_exporter, "POST /export/now")
+Rel(file_exporter, stakes_db, "SELECT актуальных ставок")
+Rel(file_exporter, sftp_gateway, "scp / sftp put")
+Rel(sftp_gateway, partner_cc, "sftp get → импорт")
+
+note right of file_exporter
+  Поддерживает:
+  - cron (ежедневно)
+  - ручной запуск
+  - повтор при ошибке
+end note
+
+note left of sftp_gateway
+  Доступ:
+  - только с IP партнёра
+  - только по SSH-ключу
+  - только в каталог /upload/
+end note
+
+@enduml
